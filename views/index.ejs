@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Excuse de dev, what else ?</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+body {
+    background: #fefefe;
+    font-family: Inter;
+}
+.lead-text {
+    font-size: 20px;
+    font-weight: 400;
+}
+.lead-text::before {
+    content: "🤭";
+    display: block;
+    font-size: 55px;
+    margin-bottom: 10px;
+}
+.lead-text span {
+    color: #4e9a06;
+    font-weight: bold;
+}
+.text-small {
+    font-size: 12px;
+    color: #919191;
+}
+.card {
+    box-shadow: rgba(0, 0, 0, 0.07) 0px 1px 1px, rgba(0, 0, 0, 0.07) 0px 2px 2px, rgba(0, 0, 0, 0.07) 0px 4px 4px, rgba(0, 0, 0, 0.07) 0px 8px 8px, rgba(0, 0, 0, 0.07) 0px 16px 16px;
+}
+#addNewExcuse {
+    display: block;
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+}
+.form-group {
+	display: flex;
+	flex-direction: column;
+	gap: 13px;
+	font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <div class="row">
+        <div class="col-12 mt-5">
+            <h1 class="lead-text text-center animate__animated animate__fadeInDown"><b>Ouch</b>, besoin d'une excuse de <span>&gt; dev</span> ? </h1>
+            <p class="text-small text-center mb-5 animate__animated animate__fadeInDown">(Promis, ça reste entre nous)</p>
+            <div class="card text-center animate__animated animate__fadeInUp">
+                <div class="card-body">
+                <h5 class="card-title" id="tagError"><%= tag %></h5>
+                <p class="card-text" id="messageError"><%= message %></p>
+                <button type="button" class="btn btn-outline-primary" id="generate">Générer une nouvelle excuse</button>
+                </div>
+                <div class="loader mt-2" style="display: none;">
+                    <div class="d-flex justify-content-center">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                        </div>
+                    </div>
+                    <p class="text-muted mt-2"><small>🔎 Je recherche ça pour toi</small></p>
+                </div>
+                <div class="card-footer text-muted">
+                Généré pour le code HTTP : <span id="httpCode"><%= http_code %></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<button class="btn btn-sm btn-secondary mt-4" id="addNewExcuse">Ajouter une nouvelle excuse</button>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+let currentErrorCode='<%= http_code %>';
+let returnError;
+let loader=document.querySelector('.loader');
+document.getElementById('generate').addEventListener('click', fetchRandom);
+document.getElementById('addNewExcuse').addEventListener('click', addNewError);
+function fetchRandom()
+{
+    loader.style.display='block';
+    fetch('/api/random').then(function(response) { return response.json(); }).then(function(jsonReturn) { applyError(jsonReturn); });
+}
+function randomIntFromInterval(min, max) {
+  return Math.floor(Math.random() * (max - min + 1) + min)
+}
+function applyError(errorObject)
+{
+    setTimeout(function() {
+        loader.style.display='none';
+        console.log(errorObject);
+        document.getElementById('httpCode').innerHTML=errorObject.http_code;
+        document.getElementById('messageError').innerHTML=errorObject.message;
+        document.getElementById('tagError').innerHTML=errorObject.tag;
+    }, randomIntFromInterval(1000, 5000));
+}
+function addNewError()
+{
+    Swal.fire({
+        title: 'Ajouter une nouvelle excuse 🤔',
+        html:'<p>Partagez votre meilleure excuse !</p>' +
+            '<div class="form-group"><label for="httpcode">Code HTTP</label><input id="httpcode" class="form-control">' +
+            '<label for="tag">Tag</label><input id="tag" class="form-control">' + '<label for="message">Message</label><input id="message" class="form-control"></div>',
+        focusConfirm: false,
+        preConfirm: () => {
+            sendNewError(document.getElementById('httpcode').value, document.getElementById('tag').value, document.getElementById('message').value);
+        }
+    });
+}
+
+function sendNewError(httpcode, tag, message) {
+    fetch('/api/create', {
+    method: 'POST',
+    headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ "http_code": httpcode, "tag": tag, "message": message })}).then(response => response.json()).then(response => Swal.fire({ html: 'Nouvelle excuse ajoutée !<br/>Explorez toutes les excuses enregistrées depuis l\'<a href="/api/list" target="_blank">endpoint API</a>' }));
+}
+</script>
+</body>
+</html>
